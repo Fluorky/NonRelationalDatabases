@@ -4,3 +4,35 @@ docker exec -it redis-stack redis-cli
 set session:maciej 12345 ex 10
 
 get session:maciej
+
+set session:maciej 1234 nx (nie można modyfikować)
+
+get session:maciej
+
+set session:maciej aaaaaaa nx
+
+get session:maciej
+
+
+INCR counter
+
+INCR counter
+
+INCR counter
+
+DECR counter
+
+DECR counter
+
+set x 100 
+
+
+incr x
+
+get x
+
+incrby x 20 
+
+incrby x 30
+
+decrby x 30
