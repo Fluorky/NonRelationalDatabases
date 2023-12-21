@@ -1,38 +1,324 @@
-docker start redis-stack
-docker exec -it redis-stack redis-cli
+ docker start redis-stack
+redis-stack
+testhub@DESKTOP-G8Q1U49:~$ docker exec -it redis-stack redis-cli
+127.0.0.1:6379> set session:maciej 12345 ex 10
+OK
+127.0.0.1:6379> get session:maciej
+(nil)
+127.0.0.1:6379> set session:maciej 12345 ex 10
+OK
+127.0.0.1:6379> get session:maciej
+"12345"
+127.0.0.1:6379> get session:maciej
+"12345"
+127.0.0.1:6379> get session:maciej
+"12345"
+127.0.0.1:6379> get session:maciej
+"12345"
+127.0.0.1:6379> get session:maciej 1234 nx
+(error) ERR wrong number of arguments for 'get' command
+127.0.0.1:6379> set session:maciej 1234 nx
+OK
+127.0.0.1:6379> get session:maciej 1234 nx
+(error) ERR wrong number of arguments for 'get' command
+127.0.0.1:6379> set session:maciej 1234 nx
+(nil)
+127.0.0.1:6379> get session:maciej
+"1234"
+127.0.0.1:6379> get session:maciej aaaaaaa nx
+(error) ERR wrong number of arguments for 'get' command
+127.0.0.1:6379> set session:maciej aaaaaaa nx
+(nil)
+127.0.0.1:6379> get session:maciej
+"1234"
+127.0.0.1:6379> INCR counter
+(integer) 1
+127.0.0.1:6379> INCR counter
+(integer) 2
+127.0.0.1:6379> INCR counter
+(integer) 3
+127.0.0.1:6379> DECR counter
+(integer) 2
+127.0.0.1:6379> set x 100
+OK
+127.0.0.1:6379> incr x
+(integer) 101
+127.0.0.1:6379> get x
+"101"
+127.0.0.1:6379> incrby x 20
+(integer) 121
+127.0.0.1:6379> incrby x 30
+(integer) 151
+127.0.0.1:6379> decrby x 30
+(integer) 121
+127.0.0.1:6379> get x
+"121"
+127.0.0.1:6379> getset x 100
+"121"
+127.0.0.1:6379> STRLEN x
+(integer) 3
+127.0.0.1:6379> MGET x y
+1) "100"
+2) (nil)
+127.0.0.1:6379> mset x 100 y 200
+OK
+127.0.0.1:6379> MGET x y
+1) "100"
+2) "200"
+127.0.0.1:6379> KEYS *
+1) "counter"
+2) "x"
+3) "session:maciej"
+4) "y"
+127.0.0.1:6379> keys sesssions:*
+(empty array)
+127.0.0.1:6379> keys sesssion:*
+(empty array)
+127.0.0.1:6379> keys session:*
+1) "session:maciej"
+127.0.0.1:6379> lpush l 1 2 3 4
+(integer) 4
+127.0.0.1:6379> lrange l
+(error) ERR wrong number of arguments for 'lrange' command
+127.0.0.1:6379> lrange l 0 -1
+1) "4"
+2) "3"
+3) "2"
+4) "1"
+127.0.0.1:6379> rpush l 5 6 7 7
+(integer) 8
+127.0.0.1:6379> l range l 0 -1
+(error) ERR unknown command 'l', with args beginning with: 'range' 'l' '0' '-1'
+127.0.0.1:6379> lrange l 0 -1
+1) "4"
+2) "3"
+3) "2"
+4) "1"
+5) "5"
+6) "6"
+7) "7"
+8) "7"
+127.0.0.1:6379> rrange l 0 -1
+(error) ERR unknown command 'rrange', with args beginning with: 'l' '0' '-1'
+127.0.0.1:6379> lrange l 0 3
+1) "4"
+2) "3"
+3) "2"
+4) "1"
+127.0.0.1:6379> rpush z a b c d
+(integer) 4
+127.0.0.1:6379> lpush z1 a b c d
+(integer) 4
+127.0.0.1:6379> lrange z1 0 -1
+1) "d"
+2) "c"
+3) "b"
+4) "a"
+127.0.0.1:6379> lrange z 0 -1
+1) "a"
+2) "b"
+3) "c"
+4) "d"
+127.0.0.1:6379> lrange l 0 -1
+1) "4"
+2) "3"
+3) "2"
+4) "1"
+5) "5"
+6) "6"
+7) "7"
+8) "7"
+127.0.0.1:6379> lpop l
+"4"
+127.0.0.1:6379> lrange l 0 -1
+1) "3"
+2) "2"
+3) "1"
+4) "5"
+5) "6"
+6) "7"
+7) "7"
+127.0.0.1:6379> rpop l 3
+1) "7"
+2) "7"
+3) "6"
+127.0.0.1:6379> lrange l 0 -1
+1) "3"
+2) "2"
+3) "1"
+4) "5"
+127.0.0.1:6379> rpop 2
+(nil)
+127.0.0.1:6379> rpop l 2
+1) "5"
+2) "1"
+127.0.0.1:6379> rpop l
+"2"
+127.0.0.1:6379> rpop l
+"3"
+127.0.0.1:6379> rpop l
+(nil)
+127.0.0.1:6379>
+127.0.0.1:6379> lrange x 0 -1
+(error) WRONGTYPE Operation against a key holding the wrong kind of value
+127.0.0.1:6379> del x
+(integer) 1
+127.0.0.1:6379>
+127.0.0.1:6379> brpop x 0
+1) "x"
+2) "1"
 
-set session:maciej 12345 ex 10
-
-get session:maciej
-
-set session:maciej 1234 nx (nie można modyfikować)
-
-get session:maciej
-
-set session:maciej aaaaaaa nx
-
-get session:maciej
+open new terminal
 
 
-INCR counter
-
-INCR counter
-
-INCR counter
-
-DECR counter
-
-DECR counter
-
-set x 100 
+testhub@DESKTOP-G8Q1U49:~$ docker exec -it redis-stack redis-cli
+127.0.0.1:6379> lpush x 1
+(integer) 1
+127.0.0.1:6379> lpush x 2
+(integer) 1
+127.0.0.1:6379>
 
 
-incr x
 
-get x
+old terminal
 
-incrby x 20 
-
-incrby x 30
-
-decrby x 30
+127.0.0.1:6379> brpop x 0
+1) "x"
+2) "2"
+127.0.0.1:6379> blpop x 10
+(nil)
+(10.07s)
+127.0.0.1:6379> blpop x 0.1
+(nil)
+127.0.0.1:6379> blpop x 0.8
+(nil)
+(0.86s)
+127.0.0.1:6379> lpush x 1 2 3 4
+(integer) 4
+127.0.0.1:6379> LLEN x
+(integer) 4
+127.0.0.1:6379> LINSERT x before 3 100
+(integer) 5
+127.0.0.1:6379> lrange x 0 -1
+1) "4"
+2) "100"
+3) "3"
+4) "2"
+5) "1"
+127.0.0.1:6379> lpush x 3
+(integer) 6
+127.0.0.1:6379> rpush x 3
+(integer) 7
+127.0.0.1:6379> LINSERT x after 3 200
+(integer) 8
+127.0.0.1:6379> lrange x 0 -1
+1) "3"
+2) "200"
+3) "4"
+4) "100"
+5) "3"
+6) "2"
+7) "1"
+8) "3"
+127.0.0.1:6379> lindex x 3
+"100"
+127.0.0.1:6379> SADD s 1 2 1 1 2 3 4
+(integer) 4
+127.0.0.1:6379> SMEMBERS s
+1) "1"
+2) "2"
+3) "3"
+4) "4"
+127.0.0.1:6379> SCARD s
+(integer) 4
+127.0.0.1:6379> SISMEMBER s 5
+(integer) 0
+127.0.0.1:6379> SISMEMBER s 1
+(integer) 1
+127.0.0.1:6379> SPOP s 2
+1) "1"
+2) "3"
+127.0.0.1:6379> sadd s 7 7 8 9 10
+(integer) 4
+127.0.0.1:6379> SMEMBERS s
+1) "2"
+2) "4"
+3) "7"
+4) "8"
+5) "9"
+6) "10"
+127.0.0.1:6379> sadd t 1 2 3 4 5 12
+(integer) 6
+127.0.0.1:6379> SUNION s t
+ 1) "1"
+ 2) "2"
+ 3) "3"
+ 4) "4"
+ 5) "5"
+ 6) "7"
+ 7) "8"
+ 8) "9"
+ 9) "10"
+10) "12"
+127.0.0.1:6379> sinter s t
+1) "2"
+2) "4"
+127.0.0.1:6379> sdiff s t
+1) "7"
+2) "8"
+3) "9"
+4) "10"
+127.0.0.1:6379> SMEMBERS s
+1) "2"
+2) "4"
+3) "7"
+4) "8"
+5) "9"
+6) "10"
+127.0.0.1:6379> SMEMBERS t
+1) "1"
+2) "2"
+3) "3"
+4) "4"
+5) "5"
+6) "12"
+127.0.0.1:6379> sdiff s t
+1) "7"
+2) "8"
+3) "9"
+4) "10"
+127.0.0.1:6379> SUNIONSTORE d s t
+(integer) 10
+127.0.0.1:6379> SMEMBERS d
+ 1) "1"
+ 2) "2"
+ 3) "3"
+ 4) "4"
+ 5) "5"
+ 6) "7"
+ 7) "8"
+ 8) "9"
+ 9) "10"
+10) "12"
+127.0.0.1:6379> SINTERSTORE d s t
+(integer) 2
+127.0.0.1:6379> SMEMBERS d
+1) "2"
+2) "4"
+127.0.0.1:6379> SINTERSTORE s s t
+(integer) 2
+127.0.0.1:6379> SMEMBERS s
+1) "2"
+2) "4"
+127.0.0.1:6379> pfadd pf 1 2 3
+(integer) 1
+127.0.0.1:6379> pfcount pf
+(integer) 3
+127.0.0.1:6379> pfadd pf 1 2 4
+(integer) 1
+127.0.0.1:6379> pfcount pf
+(integer) 4
+127.0.0.1:6379> pfadd pf 5 6 7 8 9 10 11 12 13 14 15 16 17
+(integer) 1
+127.0.0.1:6379> pfcount pf
+(integer) 17
