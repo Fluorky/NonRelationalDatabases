@@ -1,0 +1,14 @@
+https://docs.docker.com/engine/install/ubuntu/
+https://docs.docker.com/engine/install/linux-postinstall/
+https://www.mongodb.com/docs/manual/tutorial/install-mongodb-community-with-docker/
+
+docker run --name mongo -d mongodb/mongodb-community-server:latest
+docker exec -it mongo mongosh
+
+
+db 
+db.createCollection('x');
+db.x.insertOne({id_: 1, first_name: 'a', 'last_name':'b', salary: 5000.0});
+db.x.deleteOne({});
+db.x.insertOne({_id: 2, first_name: 'a', 'last_name':'c', salary: 6000.0});
+db.x.find({salary:{$gt: 5500}});

@@ -1,0 +1,152 @@
+docker start cas
+docker exec -it cas cqlsh
+use test;
+insert into test(id, v) values(4,10) using ttl 25;
+select id, v, ttl(v) from test;
+ 
+update test USING TTL 20 set v=-1 where id=1;
+select id,v,ttl(v) from test;
+select * from test;
+ 
+CREATE TABLE ct(id int primary key, c counter);
+UPDATE ct SET c = c+0 WHERE id = 1;
+SELECT * FROM ct;
+ 
+CREATE TABLE ut(id uuid primary key, v int);
+
+
+UPDATE ct SET c = c+0 WHERE id = 1;
+cqlsh:test> SELECT * FROM ct;
+ 
+id | c
+----+---
+  1 | 0
+ 
+(1 rows)
+cqlsh:test> UPDATE ct SET c = c+10 WHERE id = 1;
+cqlsh:test> SELECT * FROM ct;
+ 
+id | c
+----+----
+  1 | 10
+ 
+(1 rows)
+cqlsh:test> UPDATE ct SET c = c-100 WHERE id = 1;
+cqlsh:test> SELECT * FROM ct;
+ 
+id | c
+----+-----
+  1 | -90
+ 
+(1 rows)
+cqlsh:test> CREATE TABLE ut(id uuid primary key, v int);
+cqlsh:test> INSERT INTO ut(id,v) VALUES (uuid(), 1);
+cqlsh:test> INSERT INTO ut(id,v) VALUES (uuid(), 2);
+cqlsh:test> INSERT INTO ut(id,v) VALUES (uuid(), 3);
+cqlsh:test> SELECT * FROM ut;
+ 
+id                                   | v
+--------------------------------------+---
+69ae1aa1-c21a-4844-a7ee-08fa61cc0de1 | 3
+e339c384-59eb-4fe7-9557-d06941e5bf5f | 2
+b4abf8f3-43b9-48a8-9df6-e3cabcc04f50 | 1
+ 
+(3 rows)
+cqlsh:test> CREATE TABLE tut(p int, c timeuuid, v int, primary key(p,c));
+
+insert into tut(p,c,v) values(1,now(),1);
+insert into tut(p,c,v) values(2, now(),2);
+insert into tut(p,c,v) values(3, now(),3);
+insert into tut(p,c,v) values(4, now(),4);
+ select * from tut where p=1 order by c;
+
+
+cqlsh:test> CREATE TABLE tt(p int, c timeuuid, v int, primary key(p,c));
+
+insert into tt(p,c,v) values(1,now(),1);
+insert into tt(p,c,v) values(1, now(),2);
+insert into tt(p,c,v) values(1, now(),3);
+insert into tt(p,c,v) values(1, now(),4);
+ select * from tt where p=1 order by c;
+
+
+create table col(id int primary key, s set<int>, m map<text, int>, l list<int>);
+ insert into col(id, s , m) values(1, {4,2,2,1,0,10,11,2}, {
+        ... 'ccc':1, 'aaa':2, 'ccc':5,'bbb':2});
+cqlsh:test> select * from col;
+update col set s=s + {1,100,200}, m=m+{'aaa':100,'ddd':0} where id=1;
+select * from col;
+select m['bbb'] from col;
+select s[200] from col;
+update col set m['aaa']=300 where id=1;
+
+select * from col;
+update col set s=s-{-1,200}, m=m-{'ccc','ddd'} where id=1;
+select * from col;
+update col using ttl 15 set m=m+{'e':500},s=s+{200} where id=1;
+select * from col;
+
+insert into col(id,l) values(1,[2,1,1,4]);
+
+cqlsh:test> select * from col;
+
+ id | l            | m                      | s
+----+--------------+------------------------+---------------------------
+  1 | [2, 1, 1, 4] | {'aaa': 300, 'bbb': 2} | {0, 1, 2, 4, 10, 11, 100}
+
+(1 rows)
+cqlsh:test> update col set l=l+[300,200] where id=1;
+cqlsh:test> select * from col;
+update col set l=[300]+l where id=1;
+select * from col;
+update col set l[3]=1000 where id=1;
+select l from col;
+delete l[3] from col where id=1;
+update col set l[10]=1000 where id=1;
+select l from col;
+
+
+exit
+docker stats
+docker exec -it cas bash
+ls
+cd etc/
+cd cassandra/
+ls
+exit
+docker cp cas:etc/cassandra/cassandra-env.sh . 
+docker cp cas:etc/cassandra/jvm-server.options . 
+less cassandra-env.sh
+nano cas
+change to:
+
+-Xms256M
+-Xmx256M
+
+
+docker stop cas
+docker network ls
+docker run -d --name cas0 --network nrel cassandra
+docekr stats
+ docker cp jvm-server.options cas0:etc/cassandra/jvm-server.options
+
+docker restart cas0
+
+docker run -d --name cas1 --network nrel -e CASSANDRA_SEEDS=cas0 cassandra
+
+ docker cp jvm-server.options cas1:etc/cassandra/jvm-server.options
+
+docker restart cas1
+
+docker run -d --name cas2 --network nrel -e CASSANDRA_SEEDS=cas0 cassandra
+
+docker cp jvm-server.options cas2:etc/cassandra/jvm-server.options
+docker restart cas2
+
+docker stats
+
+docker exec cas0 nodetool status
+
+docker container ls
+
+docker stop cas0 cas1 cas2 

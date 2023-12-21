@@ -1,0 +1,6 @@
+docker start redis-stack
+docker exec -it redis-stack redis-cli
+
+set session:maciej 12345 ex 10
+
+get session:maciej

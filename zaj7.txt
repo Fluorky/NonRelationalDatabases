@@ -1,0 +1,103 @@
+docker container ls
+docker start cas0 cas1 cas2
+docker exec cas0 nodetool status
+docker exec cas0 ip address
+docker exec cas1 ip address
+docker exec cas2 ip address
+docker exec -it cas0 cqlsh
+
+select * from r1.test ;
+
+docker exec cas0 nodetool status
+docker exec cas0 nodetool status r1
+docker exec cas1 nodetool status r1
+docker exec cas0 nodetool status r2
+docker exec cas0 nodetool status r3
+
+docker exec cas0 nodetool ring
+use r1;
+select id,v, token(id) from test;
+
+exit
+docker kill cas0
+docker exec -it cas0 cqlsh
+use r1;
+select id,v, token(id) from test;
+
+select id,v, token(id) from r2.test;
+consistency
+consistency two;
+select id,v, token(id) from r2.test;
+insert into r2.test(id,v) values(13,100);
+
+consistency one;
+insert into r2.test(id,v) values(13,21) ;
+insert into r2.test(id,v) values(14,37) ;
+select * from r2.test;
+select id,v, token(id) from r2.test;
+
+docker start cas0
+insert into r2.test(id,v) values(15,14) ;
+insert into r2.test(id,v) values(16,88) ;
+select id,v, token(id) from r2.test;
+
+
+
+docker exec cas0 nodetool ring
+
+docker kill cas1
+
+docker kill cas2
+
+docker container ls
+
+select id,v, token(id) from r2.test;
+select id,v, token(id) from r2.test where id=1;
+
+docker run -d --name cas3 --network nrel -e CASSANDRA_SEEDS=cas0 cassandra
+ docker exec cas0 nodetool status r2
+ docker start cas3
+
+docker exec -it cas3 nodetool decommission
+
+
+docker exec -it cas0 cqlsh
+use r1;
+select id, v, token(id) from test;
+ 
+select id, v, token(id) from r1.test where id=4;
+ 
+CONSISTENCY;
+CONSISTENCY TWO;
+ 
+docker run -d --name cas3 --network nrel -e CASSANDRA_SEEDS=cas0 cassandra
+ 
+ 
+docker exec -it cas3 nodetool decommission
+ 
+docker run -d --name cas4 --network nrel -e CASSANDRA_SEEDS=cas0 cassandra
+docker exec cas0 nodetool status
+docker kill cas4
+docker exec cas0 nodetool status
+ 
+docker exec -it cas0 nodetool removenode b0b8f8ee-9978-486d-812b-88e3065eef60
+docker exec cas0 nodetool status
+docker container rm cas4
+ 
+docker exec cas0 nodetool gossipinfo
+
+docker exec cas0 nodetool gossipinfo
+
+
+
+docker image pull redis/redis-stack
+
+
+docker run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
+
+ docker exec -it redis-stack redis-cli
+
+set hello world
+get hello
+
+http://localhost:8001/redis-stack/browser

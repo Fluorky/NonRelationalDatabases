@@ -1,0 +1,84 @@
+docker start mongo
+
+docker exec -it mongo mongosh
+
+db
+
+show collections
+
+db.x.find({});
+db.x.insertMany([{_id:3, first_name:'z',last_name:'y',salary:5000},{_id:4,first_name:'k',last_name:'g',salary:4000
+}]);
+
+db.x.updateMany({salary:5000},{$set:{salary:5500}});
+
+db.x.updateMany({},{$set: {x:[]}});
+
+
+db.x.updateMany({_id:1},{$push:{x:10}});
+db.x.find({});
+db.x.updateMany({_id:1},{$push:{x:20}}); 
+db.x.find({});
+db.x.find({_id:1});
+
+db.x.updateMany({_id:2},{$push:{x:20}});
+
+db.x.find({});
+
+db.x.updateMany({_id:2},{$push:{x:20}});
+
+db.x.find({});
+
+db.x.find({x:{$all:[10,20]}});
+
+db.x.updateMany({},{$set:{y:{'a':1,'b':2}}});
+db.x.find({});
+
+
+db.x.updateMany({​​​​​​​​_id: 1}​​​​​​​​, {​​​​​​​​$set: {​​​​​​​​"y.a": 100}​​​​​​​​}​​​​​​​​);
+
+db.x.find({"y.a":100});
+
+db.x.updateOne({_id:1},{$set:{z:[{x:1,y:2},{x:2,y:1}]}})
+
+db.x.updateOne({_id:2},{$set:{z:[{x:4,y:2},{x:3,y:1}]}})
+db.x.find({"z.x":1});
+
+ db.x.find({"z.1.x":1});
+
+db.x.updateOne({_id:1},{$set:{"z.0.y":2000}})
+
+ db.x.find({"z.1.x":1});
+ db.x.find({"z.0x":1});
+
+db.countries
+
+db.countries.insertOne({_id:1,name: "Poland", capital: "Warsaw", cities:[{name:"Lodz", population: 700000}, {name:"Kutno", population:50000},{name:"Warsaw", population:2000000}]} )
+{ acknowledged: true, insertedId: 1 }
+
+db.countries.insertOne({_id:2,name: "Russia", capital: "Moscow", cities:[{name:"Sankt Petersburg", population: 5300000}, {name:"Moscow", population:10500000"},{name:"Norilsk", population:200000}]} )
+
+db.states.insertMany([{_id: 2, name: 'Malta', cities: [{name: 'Valetta', pop: 100000}]}]);
+
+db.countries.find({"cities.population": {$gt:1000000}})
+
+
+var id=1;
+for(var g=1; g<6;g++){
+ var size = Math.floor(20*Math.random())
+ var m = Math.floor(100*Math.random())
+ for(var s=0;s<size;s++, id++){
+ db.agg.insertOne({
+ _id: id,
+ val: m*Math.random(),
+ g: g
+ })
+ }
+}
+
+db.agg.find({})
+
+it 
+it
+
+

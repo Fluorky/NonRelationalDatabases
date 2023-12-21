@@ -1,0 +1,256 @@
+db.groups.aggregate([
+    {
+        $lookup: {
+            from: 'agg', 
+            localField: '_id', 
+            foreignField: 'g', 
+            as: 't'
+        }, 
+    },
+    {
+        $set: {
+           red: {
+             $reduce: {
+                 input: "$t",
+                 initialValue: 0,
+                 in: { $sum: [ "$$value", "$$this.val" ] }
+             }
+           },
+           mp: {
+             $map: {
+                 input: "$t",
+                 as: "v",
+                 in: { $add: [ "$$v.val", 100 ] }
+             }
+           }  
+         }
+     },
+     {
+        $set:
+        {
+            t:
+            {
+                $map:
+                {
+                    input: "$t",
+                    as: "item",
+                    in:
+                    {
+                        $mergeObjects: ["$$item", {"val2": {$multiply: ["$$item.val", 0.1]}}]
+                    }
+                }
+            }
+        }
+     }
+    ]
+);
+
+
+Replikacja w mongo
+minimalny rozmiar do replikacji to 3 1 primary dwa secondary 
+docker image ls
+docker network create -d bridge nrel
+docker network ls 
+docker run -d --name mongo1 --network nrel mongodb/mongodb-community-server --replSet rs0
+docker run -d --name mongo2--network nrel mongodb/mongodb-community-server --replSet rs0
+docker run -d --name mongo3 --network nrel mongodb/mongodb-community-server --replSet rs0
+
+docker container ls
+docker stats
+
+docker exec -it mongo1 mongosh
+
+rs.initiate( {
+ _id : "rs0",
+ members: [
+ { _id: 0, host: "mongo1:27017" },
+ { _id: 1, host: "mongo2:27017" },
+ { _id: 2, host: "mongo3:27017" }
+ ]
+ });
+
+
+rs.status()
+
+ db.test.insertOne({_id: 1, x:100});
+
+
+run new shell windows and run this commands
+
+docker exec -it mongo2 mongosh
+
+db.test.find();
+
+db.getMongo().setReadPref('secondary');
+
+db.test.find();
+
+db.test.insertOne({_id: 10});
+
+come back to primary
+
+ctrl + c 
+
+docker kill mongo1
+
+come back to secondary 
+
+rs.status()
+
+db.test.insertOne({_id: 10});
+
+db.test.find({});
+
+
+
+
+mongo 3 start
+
+
+
+docker exec -it mongo3 mongosh
+
+docker start mongo1
+
+docker exec -it mongo1 mongosh
+
+
+    
+
+cfg=rs.conf();    
+
+cfg.members[0].priority=5;   
+
+rs.reconfig(cfg);
+
+
+use hr
+
+db.employees.insertMany([{ "_id" : ObjectId("5af0776263426f87dd69319a"), "employee" : 3, "name" : { "title" : "Mr.", "name" : "Iba Ochs" }, "status" : "Active", "department" : "ABC" },
+ { "_id" : ObjectId("5af0776263426f87dd693198"), "employee" : 1, "name" : { "title" : "Miss", "name" : "Ann Thrope" }, "status" : "Active", "department" : "ABC" },
+ { "_id" : ObjectId("5af0776263426f87dd693199"), "employee" : 2, "name" : { "title" : "Mrs.", "name" : "Eppie Delta" }, "status" : "Active", "department" : "XYZ" }
+ ]);
+
+
+db.events.insertMany([{ "_id" : ObjectId("5af07daa051d92f02462644a"), "employee" : 1, "status" : { "new" : "Active", "old" : null }, "department" : { "new" : "ABC", "old" : null } },
+ { "_id" : ObjectId("5af07daa051d92f02462644b"), "employee" : 2, "status" : { "new" : "Active", "old" : null }, "department" : { "new" : "XYZ", "old" : null } },
+ { "_id" : ObjectId("5af07daa051d92f02462644c"), "employee" : 3, "status" : { "new" : "Active", "old" : null }, "department" : { "new" : "ABC", "old" : null } }
+ ]);
+
+
+
+function runTransactionWithRetry(txnFunc, session) {
+    while (true) {
+        try {
+            txnFunc(session);  // performs transaction
+            break;
+        } catch (error) {
+            // If transient error, retry the whole transaction
+            if ( error.hasOwnProperty("errorLabels") && error.errorLabels.includes("TransientTransactionError")  ) {
+                print("TransientTransactionError, retrying transaction ...");
+                continue;
+            } else {
+                throw error;
+            }
+        }
+    }
+}
+
+
+function commitWithRetry(session) {
+    while (true) {
+        try {
+            session.commitTransaction(); // Uses write concern set at transaction start.
+            print("Transaction committed.");
+            break;
+        } catch (error) {
+            // Can retry commit
+            if (error.hasOwnProperty("errorLabels") && error.errorLabels.includes("UnknownTransactionCommitResult") ) {
+                print("UnknownTransactionCommitResult, retrying commit operation ...");
+                continue;
+            } else {
+                print("Error during commit ...");
+                throw error;
+            }
+       }
+    }
+}
+
+
+function updateEmployeeInfo(session) {
+    employeesCollection = session.getDatabase("hr").employees;
+    eventsCollection = session.getDatabase("reporting").events;
+    session.startTransaction( { readConcern: { level: "snapshot" }, writeConcern: { w: "majority" } } );
+    try{
+        employeesCollection.updateOne( { employee: 3 }, { $set: { status: "Inactive" } } );
+        eventsCollection.insertOne( { employee: 3, status: { new: "Inactive", old: "Active" } } );
+    } catch (error) {
+        print("Caught exception during transaction, aborting.");
+        session.abortTransaction();
+        throw error;
+    }
+    commitWithRetry(session);
+}
+
+
+session = db.getMongo().startSession( { readPreference: { mode: "primary" } } );
+
+
+
+
+try{
+
+runTransactionWithRetry(updateEmployeeInfo, session);
+
+} catch (error) {
+
+// Do something with error
+
+} finally {
+
+session.endSession();
+
+}
+
+
+Casandra
+
+docker stop mongo1 mongo2 mongo3
+
+df -h
+
+docker image ls
+docker container rm mongo1 mongo2 mongo3 mongo
+
+docker volume prune
+
+docker container ls
+
+
+docker pull cassandra
+
+
+docker run -d --name cas cassandra
+
+docker container ls 
+docker stats
+
+docker exec -it cas cqlsh
+
+describe keyspaces
+create KEYSPACE test WITH replication = {'class' : 'SimpleStrategy', 'replication_factor' : '1' };
+use test;
+
+create table test(id int PRIMARY KEY, v float);
+insert into test(id, v) values(1, 100.0);
+select * from test;
+
+insert into test(id, v) values(1, 200.0);
+
+insert into test(id, v) values(1, 200.0);
+update test set v=300 where id=2;
+select * from test;
+
+select * from test where v=200;
+
+select * from test where id=1;

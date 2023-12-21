@@ -1,0 +1,114 @@
+docker start mongo
+docker exec -it mongo mongosh 
+db 
+show collections
+db.agg.aggregate([{$group: {_id: "$g", m: {$max: "$val"}}}]);
+filtrowanie:
+db.agg.aggregate([{$group: {_id: "$g", m: {$max: "$val"}}}, {$match: {m : {$gt:20}}}]);  
+
+db.agg.aggregate([{$match: {val: {$lt: 30}}}, {$group: {_id: "$g", m: {$max: "$val"}}}, {$match: {m: {$gt: 20}}}]);
+
+db.agg.aggregate([{$match: {val: {$lt: 30}}}, {$group: {_id: "$g", m: {$max: "$val"}}}, {$match: {m: {$gt: 20}}}, {$set: {m: {$sum: ["$m", 100]}, n: {$multiply: ["$_id", "$m"]}}}]);
+
+db.agg.aggregate([{$match: {val: {$lt: 30}}}, {$group: {_id: "$g", m: {$max: "$val"}}}, {$match: {m: {$gt: 20}}}, {$set:{m:{$sum: ["$m",10]},n:{$multiply: ["$_id","$m"]}}}]);
+
+ db.agg.aggregate([{$match: {val: {$lt: 30}}}, {$group: {_id: "$g", m: {$max: "$val"}}}, {$match: {m: {$gt: 20}}}, {$set: {m: {$sum: ["$m", {$multiply: ["$_id", 100]}]}, n: {$multiply: ["$_id", "$m", 2]}}}, {$project: {m:0}}]);
+
+db.agg.aggregate([{$match: {val: {$lt: 30}}}, {$group: {_id: "$g", m: {$max: "$val"}}}, {$match: {m: {$gt: 20}}}, {$set: {m: {$sum: ["$m", {$multiply: ["$_id", 100]}]}, n: {$multiply: ["$_id", "$m", 2]}}}, {$project: {m:1}}]);
+
+db.agg.aggregate([{$match: {val: {$lt: 30}}}, {$group: {_id: "$g", m: {$max: "$val"}}}, {$match: {m: {$gt: 20}}}, {$set: {m: {$sum: ["$m", {$multiply: ["$_id", 100]}]}, n: {$multiply: ["$_id", "$m", 2]}}}, {$project: {m:0}}, {$group:{_id:1, s: {$sum: "$n"}}}]);
+
+
+db.agg.aggregate([{​​​​​​​​$match: {​​​​​​​​val: {​​​​​​​​$lt: 30}​​​​​​​​}​​​​​​​​}​​​​​​​​, {​​​​​​​​$group: {​​​​​​​​_id: "$g", m: {​​​​​​​​$max: "$val"}​​​​​​​​}​​​​​​​​}​​​​​​​​, {​​​​​​​​$match: {​​​​​​​​m: {​​​​​​​​$gt: 20}​​​​​​​​}​​​​​​​​}​​​​​​​​, {​​​​​​​​$set: {​​​​​​​​m: {​​​​​​​​$sum: ["$m", {​​​​​​​​$multiply: ["$_id", 100]}​​​​​​​​]}​​​​​​​​, n: {​​​​​​​​$multiply: ["$_id", "$m", 2]}​​​​​​​​}​​​​​​​​}​​​​​​​​, {​​​​​​​​$project: {​​​​​​​​m: 0}​​​​​​​​}​​​​​​​​, {​​​​​​​​$group: {​​​​​​​​_id: 1, s: {​​​​​​​​$sum: "$n"}​​​​​​​​}​​​​​​​​}​​​​​​​​, {​​​​​​​​$out: {​​​​​​​​db: 'test', coll: 'outcol'}​​​​​​​​}​​​​​​​​]);
+
+db.outcol.find({});
+
+db.agg.aggregate([{​​​​​​​​$group: {​​​​​​​​_id: "$g", m: {​​​​​​​​$max: "$val"}​​​​​​​​}​​​​​​​​}​​​​​​​​, {​​​​​​​​$out: {​​​​​​​​db: 'test', coll: 'groups'}​​​​​​​​}​​​​​​​​]);
+
+db.groups.aggregate([{​​​​​​​​$lookup: {​​​​​​​​from: 'agg', localField: '_id', foreignField: 'g', as: 't'}​​​​​​​​}​​​​​​​​]);
+
+db.groups.aggregate([{$lookup: {from: 'agg', localField: '_id', foreignField: 'g', as: 't'}}, {$set: {nt: {$maxN: {n:3, input: "$t.val"}}}}]);
+
+
+kolekcja z dokumentami z 4 polami gdzie 
+grupowanie po dwóch polach 
+$avg z ostatniego 
+
+
+
+let id=1;
+for(let g1=1;g1<4;g1++){
+    for(let g2=1; g2<4; g2++, id++){
+        let size = Math.floor(20*Math.random()) + 1
+        let m = Math.floor(100*Math.random())
+        for(let s=0;s<size;s++, id++){
+            db.aggtwo.insertOne({
+                _id: id,
+                val: m*Math.random(),
+                g1: g1,
+                g2: g2
+            })
+        }
+    }
+}
+
+
+Napisać agregację, która dla każdego g1,g2 poda średnia val
+
+db.aggtwo.aggregate([{ $group: { _id: { g1: "$g1", g2: "$g2" },avgval: { $avg: "$val" } } }])
+
+
+
+db.groups.aggregate([{$lookup: {from: 'agg', localField: '_id', foreignField: 'g', as: 't'}}, {$set: {mm: {$max: "$t.val"}}}]);
+
+db.groups.aggregate([
+    {
+        $lookup: {
+            from: 'agg', 
+            localField: '_id', 
+            foreignField: 'g', 
+            as: 't'
+        }, 
+    }, {
+           $set: {
+              red: {
+                $reduce: {
+                    input: "$t",
+                    initialValue: 0,
+                    in: { $sum: [ "$$value", "$$this.val" ] }
+                }
+              }  
+            }
+        }
+    ]
+);
+
+
+db.groups.aggregate([
+    {
+        $lookup: {
+            from: 'agg', 
+            localField: '_id', 
+            foreignField: 'g', 
+            as: 't'
+        }, 
+    }, {
+           $set: {
+              red: {
+                $reduce: {
+                    input: "$t",
+                    initialValue: 0,
+                    in: { $sum: [ "$$value", "$$this.val" ] }
+                }
+              },
+              mp: {
+                $map: {
+                    input: "$t",
+                    as: "v",
+                    in: { $add: [ "$$v.val", 100 ] }
+                }
+              }  
+            }
+        }
+    ]
+);
