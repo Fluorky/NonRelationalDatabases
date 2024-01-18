@@ -1,0 +1,18 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main content</title>
+</head>
+<body>
+    <h1>Main content</h1>
+    {{#user}}
+    <p>Welcome {{.}}</p>
+    <p>You can <a href="/logout">logout</a></p>
+    {{/user}}
+    {{^user}}
+    <p>You are not logged in</p>
+    <p>Please <a href="/login">login</a></p>
+    {{/user}}
+</body>
+</html>
