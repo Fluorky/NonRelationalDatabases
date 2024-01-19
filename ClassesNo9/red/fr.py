@@ -32,8 +32,6 @@ def form_data(environ, keys):
     d = parse_qs(request_body)
     return {k:d.get(k.encode(), [b''])[0].decode() for k in keys}
 
-
-
 class Server:
     def __init__(self):
         self._routes = k.Routes()
@@ -57,5 +55,5 @@ class Server:
 
     def run(self, host="", port=8080):
         with make_server(host, port, self._app) as httpd:
-            print("Serving on port 8080...")
+            print(f"Serving on port {port}...")
             httpd.serve_forever()

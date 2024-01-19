@@ -2,28 +2,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Queue test</title>
+    <title>Main content</title>
 </head>
 <body>
-    <h1>Queue</h1>
-    <ol>
-        {{#queue}}
-        <li>{{.}}</li>
-        {{/queue}}
-    </ol>
-    <div>
-        <form action="/add" method="POST">
-            <p>
-                <label for="newel">Enter new queue element:</label>
-                <input type="text" name="newel" id="newel">
-                <button type="submit">Submit</button>
-            </p>
-        </form>
-    </div>
-    <div>
-        <form action="/pop" method="post">
-            <button type="submit">Pop from list</button>
-        </form>
-    </div>
+    <h1>Main content</h1>
+    {{#user}}
+    <p>Welcome {{.}}</p>
+    <p>You can <a href="/logout">logout</a></p>
+    {{/user}}
+    {{^user}}
+    <p>You are not logged in</p>
+    <p>Please <a href="/login">login</a></p>
+    {{/user}}
 </body>
 </html>

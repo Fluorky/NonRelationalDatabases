@@ -1,3 +1,4 @@
-chevron==0.14.0
-kua==0.2
-redis==5.0.1
+bcrypt>=4.1.2
+chevron>=0.14.0
+kua>=0.2
+redis>=5.0.1
