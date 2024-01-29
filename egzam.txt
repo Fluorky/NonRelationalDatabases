@@ -112,5 +112,35 @@ db.sprzedaz.aggregate([
     }
 ])
 
-
 db.analiza.find({});
+
+
+Ex2
+Wykonać na bazie neo4j następujące czynności
+1. Umieścić w bazie informacje o kilku klientach i towarach oraz zakupach. Ściślej mamy dwa rodzaje węzłow: o etykietach CLIENT i PRODUCT.
+CLIENT ma atrybut miasto, produkt ma nazwię, zakup towaru przez klienta jest reprezentowany przez krawędź od klienta do towaru o etykiecie BUY.
+2. Stworzyć zapytanie, które zwróci wszystkich klientów k1 i k2 oraz produkt p takich ze k1 i k2 kupili p, k1 jest róŹne od k2 i klienci k1 i k2 są z tego samego miasta
+
+1.
+// Dodanie klientów
+CREATE (:CLIENT {name: "Klient1", city: "MiastoA"})
+CREATE (:CLIENT {name: "Klient2", city: "MiastoA"})
+CREATE (:CLIENT {name: "Klient3", city: "MiastoB"})
+
+// Dodanie produktów
+CREATE (:PRODUCT {name: "ProduktA"})
+CREATE (:PRODUCT {name: "ProduktB"})
+CREATE (:PRODUCT {name: "ProduktC"})
+
+
+// Dopasowanie klientów i produktów oraz dodanie zakupów
+MATCH (k1:CLIENT {name: "Klient1"}), (k2:CLIENT {name: "Klient2"}), (p1:PRODUCT {name: "ProduktA"}), (p2:PRODUCT {name: "ProduktB"})
+CREATE (k1)-[:BUY]->(p1),
+       (k2)-[:BUY]->(p1),
+       (k1)-[:BUY]->(p2),
+       (k2)-[:BUY]->(p2)
+
+2.
+MATCH (k1:CLIENT)-[:BUY]->(p:PRODUCT)<-[:BUY]-(k2:CLIENT)
+WHERE k1 <> k2 AND k1.city = k2.city
+RETURN k1, k2, p
