@@ -1,0 +1,116 @@
+FIRST EXAM
+
+Ex 1
+Wykonaj na bazie mongoDB następujące czynności:
+1. Stwórz nową kolekcję o nazwie 'sprzedawcy' i wstaw do niej następujące dokumenty:
+ {"_id":1, "podstawa":10000, "bonus":800}
+ {"_id":2, "podstawa":1000, "bonus":300}
+ {"_id":3, "podstawa":4000, "bonus":1000}
+ {"_id":4, "podstawa":15000, "bonus":8000}
+2. Następnie stwórz potok agregacji, który doda dla każdego sprzedawcy nowe pole o nazwie pensja i wartości równej sumie podstawy i bonusu (skorzystać z operatora $set), a następnie zapisze powstałe rozszerzone dokumenty dla pracowników dla których pensja jest wyższa niż 20000 do nowej kolekcji o nazwie bogaci
+
+
+use moja_baza
+
+db.sprzedawcy.insertMany([
+    {"_id": 1, "podstawa": 10000, "bonus": 800},
+    {"_id": 2, "podstawa": 1000, "bonus": 300},
+    {"_id": 3, "podstawa": 4000, "bonus": 1000},
+    {"_id": 4, "podstawa": 15000, "bonus": 8000}
+])
+
+db.sprzedawcy.aggregate([
+    {
+        $addFields: {
+            "pensja": { $sum: ["$podstawa", "$bonus"] }
+        }
+    },
+    {
+        $match: {
+            "pensja": { $gt: 20000 }
+        }
+    },
+    {
+        $out: "bogaci"
+    }
+])
+
+ db.bogaci.find({});
+
+
+ Ex 2
+
+ Wykonać na bazie cassandra następujące czynności
+ 1. Stwórz przestrzeń kluczy o nazwie artykuły z replication factor równym 1 
+ 2. W przestrzeni kluczy artykuły stwórz tabelę post_tags taką, ze chcemy partycjonować informacje o postach według autorów i lat publikacji, a w ramach partycji chcemy identyfikować artykuły ich kategoriami i tytułami, przy czym czasem chcemy wyszukać tylko po autorach, roku i kategorii. 
+ Dodatkowo dla kadego artykułu przechowujemy zbiór tagów.
+ 3. Wstawić do tableli artykuł z kilkoma tagami
+ 4. Dodać do tagów artykuł tag komputery na 40s
+
+
+ -- 1. Tworzenie przestrzeni kluczy o nazwie artykuły z replication factor równym 1
+CREATE KEYSPACE IF NOT EXISTS articles
+WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+
+-- 2. Tworzenie tabeli post_tags
+USE articles;
+
+CREATE TABLE IF NOT EXISTS post_tags (
+    author text,
+    publication_year int,
+    category text,
+    title text,
+    tags set<text>,
+    PRIMARY KEY ((author, publication_year), category, title)
+);
+
+-- 3. Wstawianie artykułu do tabeli z kilkoma tagami
+INSERT INTO post_tags (author, publication_year, category, title, tags)
+VALUES ('John Doe', 2023, 'Technology', 'Introduction to Cassandra', {'database', 'distributed systems'});
+
+-- 4. Aktualizacja tagów artykułu o tag "komputery" na 40 sekund
+UPDATE post_tags
+USING TTL 40
+SET tags = tags + {'komputery'}
+WHERE author = 'John Doe' AND publication_year = 2023 AND category = 'Technology' AND title = 'Introduction to Cassandra';
+
+
+SECOND EXAM
+Ex1. Wykonać na bazie mongoDB następujące czynności
+1. Stworzyć nową kolekcję o nazwie 'sprzedaz' i wstawić do niej następujące dokumenty (kaŻdy z nich reperezentuje fakt sprzedaŻy jakiegoś towaru):
+
+{"_id":1, "produkt":"bike"}
+{"_id":2, "produkt":"lock"}
+{"_id":3, "produkt":"bike"}
+{"_id":4, "produkt":"bike"}
+
+2. Następnie stworzyć potok agregacji, który zagreguje dokumenty podając dla kadego produktu ile razy był on sprzedany (skorzystać z operatora $group). Następnie zapisać do kolekcji 'analiza' zagregować dokumenty dla produktów sprzedanych więcej ni raz.
+
+use moja_baza
+
+db.sprzedaz.insertMany([
+    {"_id": 1, "produkt": "bike"},
+    {"_id": 2, "produkt": "lock"},
+    {"_id": 3, "produkt": "bike"},
+    {"_id": 4, "produkt": "bike"}
+])
+
+db.sprzedaz.aggregate([
+    {
+        $group: {
+            _id: "$produkt",
+            ilosc_sprzedazy: { $sum: 1 }
+        }
+    },
+    {
+        $match: {
+            ilosc_sprzedazy: { $gt: 1 }
+        }
+    },
+    {
+        $out: "analiza"
+    }
+])
+
+
+db.analiza.find({});
