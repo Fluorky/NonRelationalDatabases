@@ -1,0 +1,359 @@
+docker start mongo
+docker exec -it mongo mongosh
+
+docker start cas
+docker exec -it cas cqlsh
+
+docker start redis-stack
+docker exec -it redis-stack redis-cli
+
+docker start neo4j
+localhost:7474
+
+FIRST EXAM
+
+Ex 1
+Wykonaj na bazie mongoDB następujące czynności:
+1. Stwórz nową kolekcję o nazwie 'sprzedawcy' i wstaw do niej następujące dokumenty:
+ {"_id":1, "podstawa":10000, "bonus":800}
+ {"_id":2, "podstawa":1000, "bonus":300}
+ {"_id":3, "podstawa":4000, "bonus":1000}
+ {"_id":4, "podstawa":15000, "bonus":8000}
+2. Następnie stwórz potok agregacji, który doda dla każdego sprzedawcy nowe pole o nazwie pensja i wartości równej sumie podstawy i bonusu (skorzystać z operatora $set), a następnie zapisze powstałe rozszerzone dokumenty dla pracowników dla których pensja jest wyższa niż 20000 do nowej kolekcji o nazwie bogaci
+
+
+use moja_baza
+
+db.sprzedawcy.insertMany([
+    {"_id": 1, "podstawa": 10000, "bonus": 800},
+    {"_id": 2, "podstawa": 1000, "bonus": 300},
+    {"_id": 3, "podstawa": 4000, "bonus": 1000},
+    {"_id": 4, "podstawa": 15000, "bonus": 8000}
+])
+
+db.sprzedawcy.aggregate([
+    {
+        $addFields: {
+            "pensja": { $sum: ["$podstawa", "$bonus"] }
+        }
+    },
+    {
+        $match: {
+            "pensja": { $gt: 20000 }
+        }
+    },
+    {
+        $out: "bogaci"
+    }
+])
+
+ db.bogaci.find({});
+
+
+ Ex 2
+
+ Wykonać na bazie cassandra następujące czynności
+ 1. Stwórz przestrzeń kluczy o nazwie artykuły z replication factor równym 1 
+ 2. W przestrzeni kluczy artykuły stwórz tabelę post_tags taką, ze chcemy partycjonować informacje o postach według autorów i lat publikacji, a w ramach partycji chcemy identyfikować artykuły ich kategoriami i tytułami, przy czym czasem chcemy wyszukać tylko po autorach, roku i kategorii. 
+ Dodatkowo dla kadego artykułu przechowujemy zbiór tagów.
+ 3. Wstawić do tableli artykuł z kilkoma tagami
+ 4. Dodać do tagów artykuł tag komputery na 40s
+
+docker start cas
+docekr exec -it cas cqlsh
+
+ -- 1. Tworzenie przestrzeni kluczy o nazwie artykuły z replication factor równym 1
+CREATE KEYSPACE IF NOT EXISTS articles
+WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+
+-- 2. Tworzenie tabeli post_tags
+USE articles;
+
+CREATE TABLE IF NOT EXISTS post_tags (
+    author text,
+    publication_year int,
+    category text,
+    title text,
+    tags set<text>,
+    PRIMARY KEY ((author, publication_year), category, title)
+);
+
+-- 3. Wstawianie artykułu do tabeli z kilkoma tagami
+INSERT INTO post_tags (author, publication_year, category, title, tags)
+VALUES ('John Doe', 2023, 'Technology', 'Introduction to Cassandra', {'database', 'distributed systems'});
+
+-- 4. Aktualizacja tagów artykułu o tag "komputery" na 40 sekund
+UPDATE post_tags
+USING TTL 40
+SET tags = tags + {'komputery'}
+WHERE author = 'John Doe' AND publication_year = 2023 AND category = 'Technology' AND title = 'Introduction to Cassandra';
+
+
+inne rozwiązanie
+
+CREATE KEYSPACE IF NOT EXISTS artykuly WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+USE artykuly;
+
+CREATE TABLE IF NOT EXISTS posts_tags (author TEXT, year INT, category TEXT, title TEXT, tags SET<TEXT>,
+PRIMARY KEY ((author, year), category, title));
+
+INSERT INTO posts_tags (author, year, category, title, tags) VALUES ('Autor1', 2022, 'Kategoria1', 'Tytuł1', {'tag1',
+'tag2', 'tag3'});
+
+INSERT INTO posts_tags (author, year, category, title, tags) VALUES ('Autor2', 2023, 'Kategoria2', 'Tytuł2', {'tag4',
+'tag5', 'tag6'});
+
+INSERT INTO posts_tags (author, year, category, title, tags) VALUES ('Autor1', 2024, 'Kategoria1', 'Tytuł3', {'tag7',
+'tag8', 'tag9'});
+
+SELECT * FROM posts_tags;
+
+UPDATE posts_tags USING TTL 40 SET tags+={'komputery'} WHERE author = 'Autor1' AND year = 2022 AND
+category = 'Kategoria1' AND title = 'Tytuł1';
+
+SECOND EXAM
+
+Ex1. Wykonać na bazie mongoDB następujące czynności
+1. Stworzyć nową kolekcję o nazwie 'sprzedaz' i wstawić do niej następujące dokumenty (kaŻdy z nich reperezentuje fakt sprzedaŻy jakiegoś towaru):
+
+{"_id":1, "produkt":"bike"}
+{"_id":2, "produkt":"lock"}
+{"_id":3, "produkt":"bike"}
+{"_id":4, "produkt":"bike"}
+
+2. Następnie stworzyć potok agregacji, który zagreguje dokumenty podając dla kadego produktu ile razy był on sprzedany (skorzystać z operatora $group). Następnie zapisać do kolekcji 'analiza' zagregować dokumenty dla produktów sprzedanych więcej ni raz.
+
+use moja_baza
+
+db.sprzedaz.insertMany([
+    {"_id": 1, "produkt": "bike"},
+    {"_id": 2, "produkt": "lock"},
+    {"_id": 3, "produkt": "bike"},
+    {"_id": 4, "produkt": "bike"}
+])
+
+db.sprzedaz.aggregate([
+    {
+        $group: {
+            _id: "$produkt",
+            ilosc_sprzedazy: { $sum: 1 }
+        }
+    },
+    {
+        $match: {
+            ilosc_sprzedazy: { $gt: 1 }
+        }
+    },
+    {
+        $out: "analiza"
+    }
+])
+
+db.analiza.find({});
+
+
+Ex2
+Wykonać na bazie neo4j następujące czynności
+1. Umieścić w bazie informacje o kilku klientach i towarach oraz zakupach. Ściślej mamy dwa rodzaje węzłow: o etykietach CLIENT i PRODUCT.
+CLIENT ma atrybut miasto, produkt ma nazwię, zakup towaru przez klienta jest reprezentowany przez krawędź od klienta do towaru o etykiecie BUY.
+2. Stworzyć zapytanie, które zwróci wszystkich klientów k1 i k2 oraz produkt p takich ze k1 i k2 kupili p, k1 jest róŹne od k2 i klienci k1 i k2 są z tego samego miasta
+
+1.
+// Dodanie klientów
+CREATE (:CLIENT {name: "Klient1", city: "MiastoA"})
+CREATE (:CLIENT {name: "Klient2", city: "MiastoA"})
+CREATE (:CLIENT {name: "Klient3", city: "MiastoB"})
+
+// Dodanie produktów
+CREATE (:PRODUCT {name: "ProduktA"})
+CREATE (:PRODUCT {name: "ProduktB"})
+CREATE (:PRODUCT {name: "ProduktC"})
+
+
+// Dopasowanie klientów i produktów oraz dodanie zakupów
+MATCH (k1:CLIENT {name: "Klient1"}), (k2:CLIENT {name: "Klient2"}), (p1:PRODUCT {name: "ProduktA"}), (p2:PRODUCT {name: "ProduktB"})
+CREATE (k1)-[:BUY]->(p1),
+       (k2)-[:BUY]->(p1),
+       (k1)-[:BUY]->(p2),
+       (k2)-[:BUY]->(p2)
+
+
+//Inne rozwiązanie
+CREATE (k1:CLIENT {miasto: 'Miasto1'})
+CREATE (k2:CLIENT {miasto: 'Miasto1'})
+CREATE (k3:CLIENT {miasto: 'Miasto2'})
+CREATE (p1:PRODUCT {nazwa: 'Produkt1'})
+CREATE (p2:PRODUCT {nazwa: 'Produkt2'})
+CREATE (p3:PRODUCT {nazwa: 'Produkt3'})
+CREATE (k1)-[:BUY]->(p1)
+CREATE (k1)-[:BUY]->(p2)
+CREATE (k2)-[:BUY]->(p2)
+CREATE (k2)-[:BUY]->(p3)
+CREATE (k3)-[:BUY]->(p3)
+CREATE (k3)-[:BUY]->(p3)
+
+MATCH (n) RETURN n
+
+MATCH (k1:CLIENT)-[:BUY]->(p:PRODUCT)<-[:BUY]-
+(k2:CLIENT) WHERE k1<>k2 AND k1.miasto = k2.miasto RETURN k1, k2, p
+
+2.
+MATCH (k1:CLIENT)-[:BUY]->(p:PRODUCT)<-[:BUY]-(k2:CLIENT)
+WHERE k1 <> k2 AND k1.city = k2.city
+RETURN k1, k2, p
+
+
+THIRD EXAM
+Ex 1
+Neo4j
+
+Zaprojektować bazę genealogiczą (węzły: osoby, związki: rodzic, potomek, małżonek, itp.). Sprawdzić czy dwie osoby są spokrewnione i wypisać sposób pokrewieństwa (najkrótszą ścieżkę łączącą)
+
+Ex2
+
+Cassandra
+
+Przykład 1.
+Stworzyć przestrzeń kluczy z replication factor = 1. Następnie stworzyć tabelę pracowników wg. następujących reguł: chcemy partycjonować wg. departamentu, a wyszukiwać wg. departamentu i nr pracownika (w tej kolejności). Oprócz tego dla pracownika przechowujemy jego imię, nazwisko, pensję oraz zbiór jego stanowisk (pracownik może mieć więcej niż jedno).
+Wstawić jednego pracownika
+Następnie zrobić operację update która temu pracownikowi doda stanowsko prezesa na 60s
+
+
+Ex 1
+
+
+CREATE (osoba1:Osoba {imię: 'Jan'})
+CREATE (osoba2:Osoba {imię: 'Kasia'})
+CREATE (osoba3:Osoba {imię: 'Alicja'})
+CREATE (osoba4:Osoba {imię: 'Bob'})
+CREATE (osoba1)-[:RODZIC]->(osoba3)
+CREATE (osoba2)-[:RODZIC]->(osoba3)
+CREATE (osoba4)-[:RODZIC]->(osoba1)
+CREATE (osoba3)-[:POTOMEK]->(osoba1)
+CREATE (osoba3)-[:POTOMEK]->(osoba2)
+CREATE (osoba1)-[:POTOMEK]->(osoba4)
+CREATE (osoba1)-[:MAŁŻONEK]->(osoba2)
+CREATE (osoba2)-[:MAŁŻONEK]->(osoba1)
+
+MATCH (n) RETURN n
+
+MATCH path=shortestPath((osoba1:Osoba {imię: 'Jan'})-[*]-
+(osoba2:Osoba {imię: 'Kasia'})) RETURN path
+
+MATCH path=shortestPath((osoba3:Osoba {imię: 'Alicja'})-[*]-
+(osoba4:Osoba {imię: 'Bob'})) RETURN path
+
+Ex 2
+CREATE KEYSPACE IF NOT EXISTS people WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+USE people;
+CREATE TABLE IF NOT EXISTS pracownicy (departament TEXT, numer_pracownika INT, imie TEXT, nazwisko
+TEXT, pensja DECIMAL, stanowiska SET<TEXT>, PRIMARY KEY (departament, numer_pracownika));
+INSERT INTO pracownicy (departament, numer_pracownika, imie, nazwisko, pensja, stanowiska) VALUES ('IT', 101,
+'Jan', 'Kowalski', 5000.00, {'programista', 'administrator'});
+SELECT * FROM pracownicy;
+UPDATE pracownicy USING TTL 60 SET stanowiska+={'prezes'} WHERE departament='IT' AND
+numer_pracownika=101;
+
+
+FOURTH EXAM
+
+Ex 1
+
+cassandra
+Uruchomić 3 serwery. Stworzyć przestrzeń kluczy z replication factor = 2. Stworzyć w tej przestrzeni tabelę z kluczem z pojedyńczym atrybutem int. Wstawić kilka wierszy. Następnie wybrać wiersz, dowiedzieć się gdzie jest przechowywany korzystając z pierścienia kluczy, i udowodnić to zabijając oba serwery i pokazując że wiersz stał się niedostępny na ostatnim serwerze.
+
+Ex 2
+Redis
+
+Stworzyć kolekcję (zbiór, mapę, będzie podane w zadaniu) w redis i zademonstrować kilka operacji na niej (podane w zadaniu): wstawianie elementu, usuwanie, itp.
+
+Ex 1
+docker start cas0
+docker exec cas0 ip address // 172.18.0.2
+docker start cas1
+docker exec cas1 ip address // 172.18.0.3
+docker start cas2 // 172.18.0.4
+docker exec cas0 nodetool status
+docker exec -it cas0 cqlsh
+CREATE KEYSPACE r2 WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': '2'};
+use r2;
+create table test(id int primary key, v float);
+insert into test(id, v) values(1,1.0);
+insert into test(id, v) values(2,2.0);
+insert into test(id, v) values(3,3.0);
+insert into test(id, v) values(4,4.0);
+insert into test(id, v) values(5,5.0);
+SELECT id, v, token(id) FROM test;
+docker exec cas0 nodetool ring
+0.2 – cas0, 0.3 – cas1
+docker stop cas0 cas1
+docker exec -it cas2 cqlsh
+USE r2;
+SELECT * from test where id=1;
+Ok, np. 1 jest czyli to nie tak, że się wszystko wywaliło. To teraz sprawdzę tą 5 którą chciałem usunąć.
+Ok, 5 faktycznie nie ma, bo była przechowywana tylko na 2 serwerach, które właśnie zabiłem.
+To teraz przywróćmy np. cas0.
+docker start cas0
+docker exec -it cas2 cqlsh
+USE r2;
+SELECT * from test;
+Ok, po przywróceniu cas0 5 wróciła
+
+Ex 2
+ZBIOR
+# Dodanie elementów do zbioru
+127.0.0.1:6379> SADD moj_zbior element1
+(integer) 1
+127.0.0.1:6379> SADD moj_zbior element2
+(integer) 1
+127.0.0.1:6379> SADD moj_zbior element3
+(integer) 1
+
+# Wyświetlenie wszystkich elementów zbioru
+127.0.0.1:6379> SMEMBERS moj_zbior
+1) "element1"
+2) "element2"
+3) "element3"
+
+# Usunięcie elementu ze zbioru
+127.0.0.1:6379> SREM moj_zbior element2
+(integer) 1
+
+# Wyświetlenie zaktualizowanej listy elementów
+127.0.0.1:6379> SMEMBERS moj_zbior
+1) "element1"
+2) "element3"
+
+MAPA
+# Dodanie par klucz-wartość do mapy
+127.0.0.1:6379> HSET moja_mapa klucz1 wartosc1
+(integer) 1
+127.0.0.1:6379> HSET moja_mapa klucz2 wartosc2
+(integer) 1
+127.0.0.1:6379> HSET moja_mapa klucz3 wartosc3
+(integer) 1
+
+# Pobranie wartości dla danego klucza
+127.0.0.1:6379> HGET moja_mapa klucz2
+"wartosc2"
+
+# Pobranie wszystkich kluczy i wartości z mapy
+127.0.0.1:6379> HGETALL moja_mapa
+1) "klucz1"
+2) "wartosc1"
+3) "klucz2"
+4) "wartosc2"
+5) "klucz3"
+6) "wartosc3"
+
+# Usunięcie klucza z mapy
+127.0.0.1:6379> HDEL moja_mapa klucz3
+(integer) 1
+
+# Pobranie zaktualizowanej listy kluczy i wartości
+127.0.0.1:6379> HGETALL moja_mapa
+1) "klucz1"
+2) "wartosc1"
+3) "klucz2"
+4) "wartosc2"
+
