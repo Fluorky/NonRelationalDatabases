@@ -357,3 +357,62 @@ MAPA
 3) "klucz2"
 4) "wartosc2"
 
+
+1.Wykonać na bazie neo4j następujące czynności:
+
+Umieścić w bazie informacje o kilku klientach i towarach oraz zakupach. Ściślej: mamy dwa rodzaje węzłów: o etykietach CLIENT i PRODUCT. CLIENT ma atrybut miasto, produkt ma nazwę, zakup towaru przez klienta jest reprezentowany przez krawędź od klienta do towaru o etykiecie BUY.
+Stworzyć zapytanie które zwróci wszystkich klientów k1 i k2 oraz produkt p takich że k1 i k2 kupili p, k1≠k2 i klienci k1 i k2 są z tego samego miasta.
+
+
+CREATE (k1:CLIENT {miasto: 'Lodz'})
+CREATE (k2:CLIENT {miasto: 'Lodz'})
+CREATE (k3:CLIENT {miasto: 'Warszawa'})
+CREATE (k4:CLIENT {miasto: 'Kutno'})
+CREATE (k5:CLIENT {miasto: 'Kutno'})
+CREATE (p1:PRODUCT {nazwa: 'Pralka'})
+CREATE (p2:PRODUCT {nazwa: 'Suszarka'})
+CREATE (p3:PRODUCT {nazwa: 'Zmywarka'})
+CREATE (p4:PRODUCT {nazwa: 'Odkurzacz'})
+CREATE (k1)-[:BUY]->(p1)
+CREATE (k1)-[:BUY]->(p2)
+CREATE (k2)-[:BUY]->(p2)
+CREATE (k2)-[:BUY]->(p3)
+CREATE (k3)-[:BUY]->(p3)
+CREATE (k3)-[:BUY]->(p3)
+CREATE (k4)-[:BUY]->(p3)
+CREATE (k4)-[:BUY]->(p4)
+CREATE (k5)-[:BUY]->(p4)
+
+
+MATCH (k1:CLIENT)-[:BUY]->(p:PRODUCT)<-[:BUY]-
+(k2:CLIENT) WHERE k1<>k2 AND k1.miasto = k2.miasto RETURN k1, k2, p
+
+2. Wykonać na bazie cassandra następujące czynności
+
+Stworzyć przestrzeń kluczy o nazwie clients z replication factor równym 1
+W przestrzeni kluczy clients stworzyć tabelę klienci_koszyki taką że chcemy partycjonować klientów wg państwa i miasta, a w ramach partycji identyfikować klienta przez jego rok urodzenia i dodatkową liczbę całkowitą (client_id), przy czym czasami chcemy wyszukiwać klientów tylko wg państwa, miasta i roku urodzenia. Dla każdego klienta w tabeli przechowujemy jego koszyk który jest mapą gdzie klucze są produktami (tekst), a wartościami są ceny (liczba zmiennoprzecinkowa).
+Wstawić do tabeli jednego klienta z kilkoma towarami w koszyku
+Dodać do koszyka klienta rower o cenie 5000 na 50s
+
+
+CREATE KEYSPACE IF NOT EXISTS clients
+WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+
+USE clients;
+
+CREATE TABLE IF NOT EXISTS klienci_koszyki (
+    panstwo text,
+    miasto text,
+    rok_urodzenia int,
+    client_id int,
+    koszyk map<text, double>,
+    PRIMARY KEY ((panstwo, miasto), rok_urodzenia, client_id)
+);
+
+INSERT INTO klienci_koszyki (panstwo, miasto, rok_urodzenia, client_id, koszyk)
+VALUES ('Polska', 'Lodz', 1999, 21, {'hulajnoga' : 3700.00, 'motocykl' : 12000.00, 'passatB6': 20000.00});
+
+UPDATE klienci_koszyki
+USING TTL 50
+SET koszyk['rower'] = 5000.00
+WHERE panstwo = 'Polska' AND miasto = 'Lodz' AND rok_urodzenia = 1999 AND client_id = 21;

@@ -117,7 +117,7 @@ exit
 docker cp cas:etc/cassandra/cassandra-env.sh . 
 docker cp cas:etc/cassandra/jvm-server.options . 
 less cassandra-env.sh
-nano cas
+nano jvm-server.options 
 change to:
 
 -Xms256M
@@ -126,6 +126,7 @@ change to:
 
 docker stop cas
 docker network ls
+docker network create -d bridge nrel
 docker run -d --name cas0 --network nrel cassandra
 docekr stats
  docker cp jvm-server.options cas0:etc/cassandra/jvm-server.options
